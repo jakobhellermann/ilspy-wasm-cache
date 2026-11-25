@@ -22,7 +22,7 @@ export { symbolOf, TOKEN_KINDS } from "./protocol.ts";
 export class MissingAssembliesError extends Error {}
 
 export interface Decompiler {
-  /** Loads dropped files (non-`.dll`s are ignored) and returns their set; the bytes are not persisted. */
+  /** Loads dropped files in place of the previous ones (non-`.dll`s are ignored) and returns their set; the bytes are not persisted. */
   add(files: Iterable<File | AssemblyFile>, main?: string): Promise<AssemblySet>;
   /** Assembly sets added so far in this origin, newest first. */
   sets(): Promise<AssemblySet[]>;

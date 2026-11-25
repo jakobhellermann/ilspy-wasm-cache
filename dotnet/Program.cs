@@ -21,6 +21,15 @@ public static partial class Decompiler
     [JSExport]
     public static void AddAssembly(string fileName, byte[] bytes) => Resolver.Add(fileName, bytes);
 
+    /// Forgets all added assemblies, so the next set does not resolve against the previous one's.
+    [JSExport]
+    public static void Clear()
+    {
+        Resolver.Clear();
+        decompiler = null;
+        others.Clear();
+    }
+
     /// Loads the main assembly; returns the file names of all assemblies its type system resolved, as a JSON array.
     [JSExport]
     public static async Task<string> Load(string mainFileName)
@@ -88,6 +97,12 @@ sealed class InMemoryResolver : IAssemblyResolver
     readonly Dictionary<string, PEFile> opened = new(StringComparer.OrdinalIgnoreCase);
 
     public void Add(string fileName, byte[] bytes) => files[Path.GetFileNameWithoutExtension(fileName)] = (fileName, bytes);
+
+    public void Clear()
+    {
+        files.Clear();
+        opened.Clear();
+    }
 
     public PEFile? Find(string name)
     {

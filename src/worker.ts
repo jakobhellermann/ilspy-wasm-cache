@@ -11,11 +11,12 @@ import type {
 declare const DECOMPILER_VERSION: string;
 
 /** Bumped when the shape of cached types changes. */
-const CACHE_FORMAT = 3;
+const CACHE_FORMAT = 4;
 declare const self: DedicatedWorkerGlobalScope;
 
 interface Exports {
   AddAssembly(name: string, bytes: Uint8Array): void;
+  Clear(): void;
   Load(main: string): Promise<string>;
   DecompileType(fullName: string): Promise<string>;
 }
@@ -70,6 +71,8 @@ async function add(files: AssemblyFile[], main: string): Promise<AssemblySet> {
   const key = hex(await crypto.subtle.digest("SHA-256", mainFile.bytes));
   const exports = await start();
   status({ phase: "loading", main });
+  loadedKey = null;
+  exports.Clear();
   for (const f of files) exports.AddAssembly(f.name, new Uint8Array(f.bytes));
   const used: string[] = JSON.parse(await exports.Load(main));
   loadedKey = key;

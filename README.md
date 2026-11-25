@@ -36,7 +36,7 @@ interface SessionState {
 }
 
 interface Decompiler {
-  // non-.dll files are ignored; the bytes are not persisted
+  // replaces the previously added assemblies; non-.dll files are ignored; the bytes are not persisted
   add(files: Iterable<File | AssemblyFile>, main?: string /* "Assembly-CSharp.dll" */): Promise<AssemblySet>;
   // newest first
   sets(): Promise<AssemblySet[]>;
