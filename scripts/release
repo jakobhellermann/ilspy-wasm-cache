@@ -27,8 +27,14 @@ elif grep -qx 'release not found' build/release.err; then
 		echo "working copy has changes; commit them before releasing $tag" >&2
 		exit 1
 	fi
+	commit=$(git rev-parse HEAD)
+	jj git fetch
+	if [[ -z $(git branch -r --contains "$commit") ]]; then
+		echo "$commit is not pushed; push it before releasing $tag" >&2
+		exit 1
+	fi
 	pack
-	gh release create "$tag" "$tgz" --target "$(git rev-parse HEAD)" --title "$tag" --notes ""
+	gh release create "$tag" "$tgz" --target "$commit" --title "$tag" --notes ""
 else
 	cat build/release.err >&2
 	exit 1
