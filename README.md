@@ -6,7 +6,7 @@ import { collectFiles, createDecompiler, createSession, MissingAssembliesError, 
 // URL where the app serves the package's dist/assets/
 function createDecompiler(assets: string | URL): Decompiler;
 
-function createSession(decompiler: Decompiler): Session;
+function createSession(decompiler: Decompiler, options?: { key?: string /* set to read types from, else the newest added */ }): Session;
 
 // .dll files, recursing into dropped directories; call synchronously in the drop handler
 function collectFiles(source: DataTransfer | FileList | Iterable<File>): Promise<File[]>;
@@ -15,17 +15,21 @@ interface Session {
   readonly state: SessionState;
   // calls the listener immediately
   subscribe(listener: (state: SessionState) => void): () => void;
-  // adds the assemblies and decompiles the waiting types against them
+  // read types from the set with this key (null: newest added); rejects pending type calls
+  use(key: string | null): Promise<void>;
+  // adds the assemblies; decompiles the waiting types against them if they are key's set
   add(files: Iterable<File | AssemblyFile>, main?: string): Promise<AssemblySet>;
-  // cached or decompiled; waits for the next add if neither is possible
+  // cached or decompiled; waits for key's set to be added if neither is possible
   type(name: string): Promise<DecompiledType>;
 }
 
 interface SessionState {
-  set: AssemblySet | null; // newest set
-  loaded: boolean; // assemblies of set are loaded in this page
+  key: string | null; // set types are read from
+  set: AssemblySet | null; // the added set with that key, if any
+  loaded: boolean; // assemblies of key are loaded in this page
+  mismatch: AssemblySet | null; // last added set when it is not key's
   status: Status;
-  waiting: string[]; // types waiting for an add
+  waiting: string[]; // types waiting for key's set
 }
 
 interface Decompiler {

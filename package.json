@@ -1,6 +1,6 @@
 {
 	"name": "ilspy-wasm-cache",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "ILSpy's decompiler on .NET WebAssembly in a worker, with a per-origin IndexedDB cache of decompiled types",
 	"type": "module",
 	"files": [
@@ -14,7 +14,8 @@
 	},
 	"scripts": {
 		"build": "scripts/build",
-		"check": "tsc --noEmit && tsc -p tsconfig.worker.json"
+		"check": "tsc --noEmit && tsc -p tsconfig.worker.json",
+		"test": "node --test test/*.test.ts"
 	},
 	"devDependencies": {
 		"esbuild": "^0.28.2",
