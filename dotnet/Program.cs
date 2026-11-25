@@ -15,6 +15,8 @@ public static partial class Decompiler
     static readonly DecompilerSettings Settings = new();
     static readonly InMemoryResolver Resolver = new();
     static CSharpDecompiler? decompiler;
+    /// Decompilers for types defined outside the main assembly, by defining file.
+    static readonly Dictionary<string, CSharpDecompiler> others = [];
 
     [JSExport]
     public static void AddAssembly(string fileName, byte[] bytes) => Resolver.Add(fileName, bytes);
@@ -28,6 +30,7 @@ public static partial class Decompiler
         // the synchronous CSharpDecompiler constructors block on a task, which single-threaded wasm cannot do
         var typeSystem = await DecompilerTypeSystem.CreateAsync(main, Resolver, Settings);
         decompiler = new CSharpDecompiler(typeSystem, Settings);
+        others.Clear();
         var used = typeSystem.Modules
             .Select(m => m.MetadataFile?.FileName)
             .OfType<string>()
@@ -35,12 +38,17 @@ public static partial class Decompiler
         return JsonSerializer.Serialize(used, Json.Default.StringArray);
     }
 
-    /// Returns `{ source, members: [{ name, line }], tokens }` as JSON; `line` is 1-based, `tokens` see `HighlightWriter`.
+    /// Returns `{ source, members: [{ name, line }], tokens }` as JSON for a type of any assembly the main one references;
+    /// `line` is 1-based, `tokens` see `HighlightWriter`.
     [JSExport]
-    public static string DecompileType(string fullName)
+    public static async Task<string> DecompileType(string fullName)
     {
         if (decompiler is null) throw new InvalidOperationException("no assembly loaded");
-        var tree = decompiler.DecompileType(new FullTypeName(fullName));
+        var name = new FullTypeName(fullName);
+        var file = decompiler.TypeSystem.FindType(name).GetDefinition()?.ParentModule?.MetadataFile
+            ?? throw new ArgumentException($"type {fullName} not found in the loaded assemblies");
+        var owner = file == decompiler.TypeSystem.MainModule.MetadataFile ? decompiler : await DecompilerFor(file);
+        var tree = owner.DecompileType(name);
         var writer = new StringWriter();
         var text = new TextWriterTokenWriter(writer) { IndentationString = "\t" };
         var highlight = new HighlightWriter(text);
@@ -52,6 +60,14 @@ public static partial class Decompiler
         return JsonSerializer.Serialize(
             new DecompiledType(writer.ToString(), members, highlight.Tokens.ToArray(), symbols.Types.ToArray(), symbols.Pairs.ToArray()),
             Json.Default.DecompiledType);
+    }
+
+    static async Task<CSharpDecompiler> DecompilerFor(MetadataFile file)
+    {
+        if (others.TryGetValue(file.FileName, out var d)) return d;
+        if (file is not PEFile pe) throw new NotSupportedException($"{file.FileName} is not a PE file");
+        var typeSystem = await DecompilerTypeSystem.CreateAsync(pe, Resolver, Settings);
+        return others[file.FileName] = new CSharpDecompiler(typeSystem, Settings);
     }
 
     static IEnumerable<Member> MembersOf(AstNode node, SymbolTable symbols) => node switch

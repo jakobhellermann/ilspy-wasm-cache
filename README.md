@@ -92,4 +92,6 @@ type Status =
   | { phase: "decompiling"; type: string; pending: number };
 ```
 
+Type names are reflection names (`Namespace.Outer+Nested`) of types in the main assembly or any assembly it references.
+
 Cache: IndexedDB `ilspy-wasm-cache`, per origin, keyed by assembly hash, decompiler version and type name.

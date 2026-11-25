@@ -1,6 +1,6 @@
 {
 	"name": "ilspy-wasm-cache",
-	"version": "0.4.0",
+	"version": "0.5.0",
 	"description": "ILSpy's decompiler on .NET WebAssembly in a worker, with a per-origin IndexedDB cache of decompiled types",
 	"type": "module",
 	"files": [

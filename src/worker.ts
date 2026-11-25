@@ -17,7 +17,7 @@ declare const self: DedicatedWorkerGlobalScope;
 interface Exports {
   AddAssembly(name: string, bytes: Uint8Array): void;
   Load(main: string): Promise<string>;
-  DecompileType(fullName: string): string;
+  DecompileType(fullName: string): Promise<string>;
 }
 
 class MissingAssemblies extends Error {}
@@ -108,7 +108,7 @@ async function decompile(key: string, type: string): Promise<DecompiledType> {
   // yield so queued messages (cache reads) are answered before the long synchronous call
   await new Promise((r) => setTimeout(r));
   const { source, members, tokens, symbols, symbolTypes } = JSON.parse(
-    (await start()).DecompileType(type),
+    await (await start()).DecompileType(type),
   );
   const result: DecompiledType = { type, source, members, tokens, symbols, symbolTypes };
   await put("types", { id: typeId(key, type), ...result });
