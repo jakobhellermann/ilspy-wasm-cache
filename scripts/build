@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Builds dist/: the client module plus dist/assets/ (worker and .NET runtime) for the consumer to serve.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+version=$(sed -n 's/.*Include="ICSharpCode.Decompiler" Version="\([^"]*\)".*/\1/p' dotnet/IlspyWasm.csproj)
+[[ -n $version ]] || { echo "ICSharpCode.Decompiler version not found in dotnet/IlspyWasm.csproj" >&2; exit 1; }
+
+rm -rf dist build/dotnet
+dotnet publish dotnet -c Release -o build/dotnet
+mkdir -p dist/assets
+cp -r build/dotnet/wwwroot/_framework dist/assets/
+
+esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js
+esbuild src/worker.ts --bundle --format=esm --outfile=dist/assets/worker.js --define:DECOMPILER_VERSION="\"$version\""
+tsc
+tsc -p tsconfig.worker.json

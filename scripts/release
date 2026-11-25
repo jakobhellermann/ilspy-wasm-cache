@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Publishes the package.json version as a GitHub release with the packed tarball; a no-op if it is already published.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+version=$(jq -er .version package.json)
+tag="v$version"
+tgz="build/ilspy-wasm-cache-$version.tgz"
+asset=$(basename "$tgz")
+mkdir -p build
+
+pack() {
+	pnpm build
+	pnpm pack --out "$tgz"
+}
+
+if assets=$(gh release view "$tag" --json assets --jq '.assets[].name' 2>build/release.err); then
+	if grep -qxF "$asset" <<<"$assets"; then
+		echo "$tag is already released with $asset"
+	else
+		# a previous run created the release but did not upload the tarball
+		pack
+		gh release upload "$tag" "$tgz"
+	fi
+elif grep -qx 'release not found' build/release.err; then
+	if [[ -n $(jj diff --summary) ]]; then
+		echo "working copy has changes; commit them before releasing $tag" >&2
+		exit 1
+	fi
+	pack
+	gh release create "$tag" "$tgz" --target "$(git rev-parse HEAD)" --title "$tag" --notes ""
+else
+	cat build/release.err >&2
+	exit 1
+fi
+
+echo "https://github.com/$(gh repo view --json nameWithOwner --jq .nameWithOwner)/releases/download/$tag/$asset"
