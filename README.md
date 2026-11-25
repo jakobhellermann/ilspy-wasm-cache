@@ -1,12 +1,15 @@
 # ilspy-wasm-cache
 
 ```ts
-import { collectFiles, createDecompiler, createSession, MissingAssembliesError, symbolOf } from "ilspy-wasm-cache";
+import { collectFiles, createDecompiler, createSession, MissingAssembliesError, segmentLines, symbolOf } from "ilspy-wasm-cache";
 
 // URL where the app serves the package's dist/assets/
 function createDecompiler(assets: string | URL): Decompiler;
 
 function createSession(decompiler: Decompiler, options?: { key?: string /* set to read types from, else the newest added */ }): Session;
+
+// source as lines of { text, kind: TokenKind | null, symbol } for rendering without an editor
+function segmentLines(t: DecompiledType): Segment[][];
 
 // .dll files, recursing into dropped directories; call synchronously in the drop handler
 function collectFiles(source: DataTransfer | FileList | Iterable<File>): Promise<File[]>;

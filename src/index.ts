@@ -99,4 +99,5 @@ export function createDecompiler(assets: string | URL): Decompiler {
 }
 
 export { collectFiles } from "./files.ts";
+export { segmentLines, type Segment } from "./segments.ts";
 export { createSession, type Session, type SessionOptions, type SessionState } from "./session.ts";
