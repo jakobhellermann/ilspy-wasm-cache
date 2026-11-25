@@ -1,7 +1,7 @@
 # ilspy-wasm-cache
 
 ```ts
-import { collectFiles, createDecompiler, createSession, MissingAssembliesError } from "ilspy-wasm-cache";
+import { collectFiles, createDecompiler, createSession, MissingAssembliesError, symbolOf } from "ilspy-wasm-cache";
 
 // URL where the app serves the package's dist/assets/
 function createDecompiler(assets: string | URL): Decompiler;
@@ -58,11 +58,27 @@ interface DecompiledType {
   type: string;
   source: string;
   members: Member[];
+  tokens: number[]; // [gap, length, kind, symbol] quadruples, gap = characters since the previous token's end, kind indexes TOKEN_KINDS, symbol = id or 0
+  symbols: number[]; // id n is [symbolTypes index, metadata token] at [2n - 2, 2n - 1]
+  symbolTypes: string[]; // reflection names of declaring types
 }
+
+// an entity by declaring type and metadata token, equal across decompiled types
+interface Symbol {
+  type: string;
+  token: number;
+}
+
+// null for id 0
+function symbolOf(t: DecompiledType, id: number): Symbol | null;
+
+const TOKEN_KINDS = ["keyword", "type", "method", "member", "string", "number", "comment"] as const;
+type TokenKind = (typeof TOKEN_KINDS)[number];
 
 interface Member {
   name: string;
   line: number; // 1-based line of the member's name in source
+  symbol: number; // id or 0
 }
 
 type Status =

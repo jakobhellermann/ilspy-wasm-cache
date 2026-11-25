@@ -7,7 +7,16 @@ import type {
   Status,
 } from "./protocol.ts";
 
-export type { AssemblyFile, AssemblySet, DecompiledType, Member, Status } from "./protocol.ts";
+export type {
+  AssemblyFile,
+  AssemblySet,
+  DecompiledType,
+  Member,
+  Status,
+  Symbol,
+  TokenKind,
+} from "./protocol.ts";
+export { symbolOf, TOKEN_KINDS } from "./protocol.ts";
 
 /** Thrown by `request` when the type is not cached and the assemblies of its set are not loaded. */
 export class MissingAssembliesError extends Error {}
@@ -44,6 +53,13 @@ export function createDecompiler(assets: string | URL): Decompiler {
       call.reject(
         data.missingAssemblies ? new MissingAssembliesError(data.error) : new Error(data.error),
       );
+  };
+
+  // a worker that fails to load or throws outside a call would otherwise leave its callers pending
+  worker.onerror = (e) => {
+    const error = new Error(`decompiler worker failed: ${e.message || "could not load worker.js"}`);
+    for (const call of calls.values()) call.reject(error);
+    calls.clear();
   };
 
   function call<T>(request: Request, transfer: Transferable[] = []): Promise<T> {

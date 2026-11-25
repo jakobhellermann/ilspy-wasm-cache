@@ -9,6 +9,9 @@ import type {
 } from "./protocol.ts";
 
 declare const DECOMPILER_VERSION: string;
+
+/** Bumped when the shape of cached types changes. */
+const CACHE_FORMAT = 3;
 declare const self: DedicatedWorkerGlobalScope;
 
 interface Exports {
@@ -104,8 +107,10 @@ async function decompile(key: string, type: string): Promise<DecompiledType> {
   status({ phase: "decompiling", type, pending });
   // yield so queued messages (cache reads) are answered before the long synchronous call
   await new Promise((r) => setTimeout(r));
-  const { source, members } = JSON.parse((await start()).DecompileType(type));
-  const result: DecompiledType = { type, source, members };
+  const { source, members, tokens, symbols, symbolTypes } = JSON.parse(
+    (await start()).DecompileType(type),
+  );
+  const result: DecompiledType = { type, source, members, tokens, symbols, symbolTypes };
   await put("types", { id: typeId(key, type), ...result });
   return result;
 }
@@ -121,7 +126,8 @@ function start(): Promise<Exports> {
   })());
 }
 
-const typeId = (key: string, type: string) => `${key}:${DECOMPILER_VERSION}:${type}`;
+const typeId = (key: string, type: string) =>
+  `${key}:${DECOMPILER_VERSION}:${CACHE_FORMAT}:${type}`;
 
 const hex = (buf: ArrayBuffer) =>
   [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
