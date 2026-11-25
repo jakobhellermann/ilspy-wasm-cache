@@ -81,3 +81,6 @@ export function createDecompiler(assets: string | URL): Decompiler {
     terminate: () => worker.terminate(),
   };
 }
+
+export { collectFiles } from "./files.ts";
+export { createSession, type Session, type SessionState } from "./session.ts";
